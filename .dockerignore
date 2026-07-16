@@ -1,0 +1,11 @@
+/vendor
+/node_modules
+/.env
+/storage/*.log
+/.git
+/.github
+/tests
+/phpunit.xml
+/.editorconfig
+/.gitattributes
+/.gitignore
