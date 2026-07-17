@@ -12,18 +12,14 @@ class ContactController extends Controller
     public function __invoke(ContactRequest $request, ContactService $service): JsonResponse
     {
         $result = $service->handle($request->validated());
+        $emailSent = $result['email_delivery']['owner'] && $result['email_delivery']['user'];
 
         return response()->json([
-            'message' => 'Обращение получено',
+            'message' => $emailSent
+                ? 'Обращение получено, копия отправлена на вашу почту.'
+                : 'Обращение сохранено, но почтовый сервис временно недоступен.',
             'ai_reply' => $result['ai_reply'],
-        ], 201);
-    }
-
-    // Если есть middleware – убедитесь, что там только throttle
-    public static function middleware(): array
-    {
-        return [
-            new \Illuminate\Routing\Controllers\Middleware('throttle:5,1'),
-        ];
+            'email_status' => $emailSent ? 'sent' : 'deferred',
+        ], $emailSent ? 201 : 202);
     }
 }

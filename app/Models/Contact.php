@@ -17,4 +17,14 @@ class Contact extends Model
         'ai_response',
         'sent_to_user',
     ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'sent_to_user' => 'boolean',
+        ];
+    }
 }

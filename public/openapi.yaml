@@ -1,0 +1,169 @@
+openapi: 3.1.0
+info:
+  title: Contact API
+  version: 1.0.0
+  description: REST API формы обратной связи с AI-ответом и email-уведомлениями через Brevo.
+servers:
+  - url: /
+    description: Текущий сервер
+  - url: https://contact-api-production-5283.up.railway.app
+    description: Production
+tags:
+  - name: Contact
+  - name: Service
+paths:
+  /api/contact:
+    post:
+      tags: [Contact]
+      summary: Создать обращение
+      description: Валидирует данные, генерирует AI-ответ, сохраняет обращение и отправляет два email-уведомления.
+      operationId: createContact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactRequest'
+            example:
+              name: Иван Петров
+              phone: '+79991234567'
+              email: ivan@example.com
+              comment: Хочу обсудить разработку API для продукта.
+      responses:
+        '201':
+          description: Обращение сохранено, оба письма приняты email-провайдером.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactResponse'
+              example:
+                message: Обращение получено, копия отправлена на вашу почту.
+                ai_reply: Спасибо, Иван! Расскажите подробнее о задаче.
+                email_status: sent
+        '202':
+          description: Обращение сохранено, но хотя бы одно email-уведомление не было принято провайдером.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactResponse'
+              example:
+                message: Обращение сохранено, но почтовый сервис временно недоступен.
+                ai_reply: Спасибо, Иван! Мы получили ваше обращение.
+                email_status: deferred
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          description: Превышен лимит обращений с одного IP.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Слишком много обращений. Повторите попытку через минуту.
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /api/health:
+    get:
+      tags: [Service]
+      summary: Проверить доступность сервиса
+      operationId: health
+      responses:
+        '200':
+          description: Сервис работает.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    const: ok
+              example:
+                status: ok
+  /api/metrics:
+    get:
+      tags: [Service]
+      summary: Получить агрегированную статистику обращений
+      operationId: metrics
+      responses:
+        '200':
+          description: Количество обращений без персональных данных.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [total, today]
+                properties:
+                  total:
+                    type: integer
+                    minimum: 0
+                  today:
+                    type: integer
+                    minimum: 0
+              example:
+                total: 42
+                today: 3
+components:
+  schemas:
+    ContactRequest:
+      type: object
+      additionalProperties: false
+      required: [name, phone, email, comment]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        phone:
+          type: string
+          pattern: '^\\+?[0-9]{10,15}$'
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        comment:
+          type: string
+          minLength: 3
+          maxLength: 3000
+    ContactResponse:
+      type: object
+      required: [message, ai_reply, email_status]
+      properties:
+        message:
+          type: string
+        ai_reply:
+          type: string
+        email_status:
+          type: string
+          enum: [sent, deferred]
+    MessageResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+    ValidationError:
+      type: object
+      required: [message, errors]
+      properties:
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+  responses:
+    ValidationError:
+      description: Входные данные не прошли валидацию.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationError'
+    ServerError:
+      description: Непредвиденная серверная ошибка.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MessageResponse'

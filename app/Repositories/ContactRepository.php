@@ -11,6 +11,11 @@ class ContactRepository
         return Contact::create($data);
     }
 
+    public function markUserEmailSent(Contact $contact): void
+    {
+        $contact->update(['sent_to_user' => true]);
+    }
+
     public function getStats(): array
     {
         return [

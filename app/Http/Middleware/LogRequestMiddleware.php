@@ -12,10 +12,11 @@ class LogRequestMiddleware
     public function handle(Request $request, Closure $next): Response
     {
         Log::info('Request', [
-            'ip' => $request->ip(),
+            'request_id' => $request->header('X-Request-ID'),
+            'ip_hash' => hash('sha256', (string) $request->ip()),
             'endpoint' => $request->path(),
             'method' => $request->method(),
-            'payload' => $request->except(['password', 'password_confirmation']),
+            'payload_fields' => array_keys($request->all()),
         ]);
 
         $start = microtime(true);

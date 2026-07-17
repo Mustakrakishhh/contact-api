@@ -46,4 +46,5 @@ return [
     */
 
     'request_timeout' => env('OPENAI_REQUEST_TIMEOUT', 30),
+    'model' => env('OPENAI_MODEL', 'gpt-5.6-luna'),
 ];
